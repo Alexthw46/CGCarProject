@@ -1,7 +1,4 @@
 
-
-
-
 /*
 the FollowFromUpCamera always look at the car from a position above right over the car
 */
@@ -21,6 +18,9 @@ FollowFromUpCamera = function(){
   }
 }
 
+/*
+Testing
+*/
 FollowFromBehindCamera = function(){
   /* the only data it needs is the position of the camera */
   this.pos = [0,0,0];
@@ -42,8 +42,9 @@ let Renderer = {};
 Renderer.cameras = [];
 // add a FollowFromUpCamera
 Renderer.cameras.push(new FollowFromUpCamera());
+Renderer.cameras.push(new FollowFromBehindCamera());
 // set the camera currently in use
-Renderer.currentCamera = 0;
+Renderer.currentCamera = 1;
 
 /*
 create the buffers for an object as specified in common/shapes/triangle.js
@@ -214,7 +215,9 @@ Renderer.setupAndStart = function () {
   Renderer.Display();
 }
 
-on_mouseMove = function(e){}
+on_mouseMove = function(e){
+  
+}
 
 on_keyup = function(e){
 	Renderer.car.control_keys[e.key] = false;
