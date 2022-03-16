@@ -3,7 +3,7 @@
 
 
 /*
-the FollowFromUpCamera always look at the car from a position abova right over the car
+the FollowFromUpCamera always look at the car from a position above right over the car
 */
 FollowFromUpCamera = function(){
 
@@ -15,7 +15,7 @@ FollowFromUpCamera = function(){
     this.pos = car_position;
   }
 
-  /* return the transformation matrix to transform from worlod coordiantes to the view reference frame */
+  /* return the transformation matrix to transform from world coordiantes to the view reference frame */
   this.matrix = function(){
     return glMatrix.mat4.lookAt(glMatrix.mat4.create(),[ this.pos[0],50, this.pos[2]], this.pos,[0, 0, -1]);	
   }
@@ -32,12 +32,11 @@ FollowFromBehindCamera = function(){
 
   /* return the transformation matrix to transform from worlod coordiantes to the view reference frame */
   this.matrix = function(){
-    return glMatrix.mat4.lookAt(glMatrix.mat4.create(),[ this.pos[0],50, this.pos[2]], this.pos,[0, 0, -1]);	
-  }
+    return glMatrix.mat4.lookAt(glMatrix.mat4.create(),[this.pos[0]+15,15, this.pos[2]+15], [this.pos[0], this.pos[1]+1, this.pos[2]], [-1, 1, -1]);	  }
 }
 
 /* the main object to be implementd */
-var Renderer = new Object();
+let Renderer = {};
 
 /* array of cameras that will be used */
 Renderer.cameras = [];
@@ -62,11 +61,11 @@ Renderer.createObjectBuffers = function (gl, obj) {
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
   // create edges
-  var edges = new Uint16Array(obj.numTriangles * 3 * 2);
-  for (var i = 0; i < obj.numTriangles; ++i) {
-    edges[i * 6 + 0] = obj.triangleIndices[i * 3 + 0];
+  let edges = new Uint16Array(obj.numTriangles * 3 * 2);
+  for (let i = 0; i < obj.numTriangles; ++i) {
+    edges[i * 6] = obj.triangleIndices[i * 3];
     edges[i * 6 + 1] = obj.triangleIndices[i * 3 + 1];
-    edges[i * 6 + 2] = obj.triangleIndices[i * 3 + 0];
+    edges[i * 6 + 2] = obj.triangleIndices[i * 3];
     edges[i * 6 + 3] = obj.triangleIndices[i * 3 + 2];
     edges[i * 6 + 4] = obj.triangleIndices[i * 3 + 1];
     edges[i * 6 + 5] = obj.triangleIndices[i * 3 + 2];
@@ -117,7 +116,7 @@ Renderer.initializeObjects = function (gl) {
 
   Renderer.createObjectBuffers(gl,Game.scene.trackObj);
   Renderer.createObjectBuffers(gl,Game.scene.groundObj);
-  for (var i = 0; i < Game.scene.buildings.length; ++i) 
+  for (let i = 0; i < Game.scene.buildings.length; ++i)
 	  	Renderer.createObjectBuffers(gl,Game.scene.buildingsObj[i]);
 };
 
@@ -131,10 +130,10 @@ Renderer.drawCar = function (gl) {
 
 Renderer.drawScene = function (gl) {
 
-  var width = this.canvas.width;
-  var height = this.canvas.height
-  var ratio = width / height;
-  var stack = new MatrixStack();
+  const width = this.canvas.width;
+  const height = this.canvas.height;
+  const ratio = width / height;
+  const stack = new MatrixStack();
 
   gl.viewport(0, 0, width, height);
   
@@ -150,8 +149,8 @@ Renderer.drawScene = function (gl) {
   gl.uniformMatrix4fv(this.uniformShader.uProjectionMatrixLocation,     false,glMatrix.mat4.perspective(glMatrix.mat4.create(),3.14 / 4, ratio, 1, 500));
 
   Renderer.cameras[Renderer.currentCamera].update(this.car.position);
-  var invV = Renderer.cameras[Renderer.currentCamera].matrix();
-  
+  let invV = Renderer.cameras[Renderer.currentCamera].matrix();
+
   // initialize the stack with the identity
   stack.loadIdentity();
   // multiply by the view matrix
@@ -170,7 +169,7 @@ Renderer.drawScene = function (gl) {
   // drawing the static elements (ground, track and buldings)
 	this.drawObject(gl, Game.scene.groundObj, [0.3, 0.7, 0.2, 1.0], [0, 0, 0, 1.0]);
  	this.drawObject(gl, Game.scene.trackObj, [0.9, 0.8, 0.7, 1.0], [0, 0, 0, 1.0]);
-	for (var i in Game.scene.buildingsObj) 
+	for (let i in Game.scene.buildingsObj)
 		this.drawObject(gl, Game.scene.buildingsObj[i], [0.8, 0.8, 0.8, 1.0], [0.2, 0.2, 0.2, 1.0]);
 	gl.useProgram(null);
 };
@@ -191,10 +190,10 @@ Renderer.setupAndStart = function () {
 	Renderer.gl = Renderer.canvas.getContext("webgl");
 
   /* read the webgl version and log */
-	var gl_version = Renderer.gl.getParameter(Renderer.gl.VERSION); 
-	log("glversion: " + gl_version);
-	var GLSL_version = Renderer.gl.getParameter(Renderer.gl.SHADING_LANGUAGE_VERSION)
-	log("glsl  version: "+GLSL_version);
+  let gl_version = Renderer.gl.getParameter(Renderer.gl.VERSION);
+  log("glversion: " + gl_version);
+  let GLSL_version = Renderer.gl.getParameter(Renderer.gl.SHADING_LANGUAGE_VERSION);
+  log("glsl  version: "+GLSL_version);
 
   /* create the matrix stack */
 	Renderer.stack = new MatrixStack();
