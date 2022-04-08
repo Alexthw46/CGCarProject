@@ -1,4 +1,4 @@
-	MatrixStack = function (){	
+MatrixStack = function (){
 		var m = glMatrix.mat4.create();
 		this._l  = 1;
 		this._m  = m;

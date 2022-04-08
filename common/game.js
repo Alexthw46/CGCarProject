@@ -1,5 +1,5 @@
 
-		 class Car {
+class Car {
       constructor(name, start_position){
          this.name = name;
          this.position = start_position;
@@ -81,10 +81,10 @@
       this.isBraking   			= false;
 
 
-      var o =  this.position; 
-      var y_axis = [0,1,0];  
-      var z_axis =   [-this.direction[0],-this.direction[1],-this.direction[2]];
-      var x_axis = glMatrix.vec3.create();
+		  const o = this.position;
+		  const y_axis = [0, 1, 0];
+		  const z_axis = [-this.direction[0], -this.direction[1], -this.direction[2]];
+		  var x_axis = glMatrix.vec3.create();
       glMatrix.vec3.cross(x_axis,y_axis,z_axis);
       
       glMatrix.mat4.set(this.frame,
@@ -98,19 +98,19 @@
        key_down(key){
          
        }
-		};		
+		}
 
 Game = {
   cars : [],
   addCar: function (name){
-    newCar = new Car(name,Game.scene.startPosition);
+	  let newCar = new Car(name, Game.scene.startPosition);
     Game.cars.push(newCar);
     if(Game.cars.length===1)
       window.requestAnimationFrame(Game.update_step) ;
     return newCar;
   },
   update_step : function(currTime){
-    for(i=0; i < Game.cars.length;++i)
+    for(let i=0; i < Game.cars.length;++i)
       Game.cars[i].update_step.call(Game.cars[i],currTime);
   window.requestAnimationFrame(Game.update_step) ;
 
@@ -129,7 +129,7 @@ Game = {
 	  Game.scene.groundObj = new Quadrilateral(quad);
 
 	  Game.scene.buildingsObj  = new Array(Game.scene.buildings.length);
-  	for (var i = 0; i < Game.scene.buildings.length; ++i) 
+  	for (let i = 0; i < Game.scene.buildings.length; ++i)
 	  	Game.scene.buildingsObj[i] = new BuildingMaker(Game.scene.buildings[i]);
   }
 };
