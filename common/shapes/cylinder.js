@@ -11,14 +11,14 @@ function Cylinder (resolution) {
 	////////////////////////////////////////////////////////////
 	
 	this.vertices = new Float32Array(3*(2*resolution+2));
-
-	let radius = 1.0;
-	let angle;
-	const step = 6.283185307179586476925286766559 / resolution;
-
+	
+	var radius = 1.0;
+	var angle;
+	var step = 6.283185307179586476925286766559 / resolution;
+	
 	// lower circle
-	let vertexoffset = 0;
-	for (let i = 0; i < resolution; i++) {
+	var vertexoffset = 0;
+	for (var i = 0; i < resolution; i++) {
 	
 		angle = step * i;
 		
@@ -29,7 +29,7 @@ function Cylinder (resolution) {
 	}
 	
 	// upper circle
-	for (let i = 0; i < resolution; i++) {
+	for (var i = 0; i < resolution; i++) {
 	
 		angle = step * i;
 		
@@ -55,22 +55,22 @@ function Cylinder (resolution) {
 	this.triangleIndices = new Uint16Array(3*4*resolution);
 	
 	// lateral surface
-	let triangleoffset = 0;
-	for (let i = 0; i < resolution; i++)
+	var triangleoffset = 0;
+	for (var i = 0; i < resolution; i++)
 	{
 		this.triangleIndices[triangleoffset] = i;
-		this.triangleIndices[triangleoffset+1] = (i+1) % resolution;
-		this.triangleIndices[triangleoffset+2] = (i % resolution) + resolution;
+		this.triangleIndices[triangleoffset+2] = (i+1) % resolution;
+		this.triangleIndices[triangleoffset+1] = (i % resolution) + resolution;
 		triangleoffset += 3;
 		
 		this.triangleIndices[triangleoffset] = (i % resolution) + resolution;
-		this.triangleIndices[triangleoffset+1] = (i+1) % resolution;
-		this.triangleIndices[triangleoffset+2] = ((i+1) % resolution) + resolution;
+		this.triangleIndices[triangleoffset+2] = (i+1) % resolution;
+		this.triangleIndices[triangleoffset+1] = ((i+1) % resolution) + resolution;
 		triangleoffset += 3;
 	}
 	
 	// bottom of the cylinder
-	for (let i = 0; i < resolution; i++)
+	for (var i = 0; i < resolution; i++)
 	{
 		this.triangleIndices[triangleoffset] = i;
 		this.triangleIndices[triangleoffset+1] = (i+1) % resolution;
@@ -79,11 +79,11 @@ function Cylinder (resolution) {
 	}
 	
 	// top of the cylinder
-	for (let i = 0; i < resolution; i++)
+	for (var i = 0; i < resolution; i++)
 	{
 		this.triangleIndices[triangleoffset] = resolution + i;
-		this.triangleIndices[triangleoffset+1] = ((i+1) % resolution) + resolution;
-		this.triangleIndices[triangleoffset+2] = 2*resolution+1;
+		this.triangleIndices[triangleoffset+2] = ((i+1) % resolution) + resolution;
+		this.triangleIndices[triangleoffset+1] = 2*resolution+1;
 		triangleoffset += 3;
 	}
 		

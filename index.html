@@ -11,10 +11,11 @@
 		<script type="text/javascript" src="./common/shapes/triangle_car.js">			      	</script>
     <script type="text/javascript" src="./common/scenes/scene_0.js">			      	</script>
 		<script type="text/javascript" src="./common/game.js"></script>
-	  <script type="text/javascript" src="./common/json_gpu_loader.js"></script>
-	  <script type="text/javascript" src="./common/compute_normals.js"></script>
+	  <script type="text/javascript" src="./common/libs/json_gpu_loader.js"></script>
+	  <script type="text/javascript" src="./common/libs/compute_normals.js"></script>
 	  <script type="text/javascript" src="./renderer_00/shaders.js">				</script>
-		<script type="text/javascript" src="./renderer_00/main.js">							</script>
+	  <script type="text/javascript" src="./common/trackballUtils.js"></script>
+	  <script type="text/javascript" src="./renderer_00/main.js">							</script>
 	  <title></title>
 
   </head>
@@ -38,11 +39,12 @@
 </div>
 
 <div>
-	<label for="mode">control mode:</label>
+	<label for="shading_mode">shading mode:</label>
 	<label for="shading_mode"></label><select name="shading_mode" id="shading_mode" onchange="update_shading(this.value)">
-		<option value="0">Flat</option>
-		<option value="1">Gouraud </option>
-		<option value="2">Phong </option>
+	<option value="0"> None </option>
+	<option value="1">Flat</option>
+	<option value="2">Goraud </option>
+	<option value="3">Phong </option>
 	</select>
 </div>
 

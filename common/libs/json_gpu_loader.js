@@ -1,4 +1,4 @@
-let loadOnGPU = function (gl, jsonMesh) {
+let loadOnGPU = function (jsonMesh) {
     let gpuMesh = {
         vertBuffer: null,
         indexBuffer: null

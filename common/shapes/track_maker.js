@@ -26,13 +26,13 @@ function TrackMaker(track) {
 	var triangleoffset = 0;
 	for (var i=0; i< nv ; ++i) {
 		this.triangleIndices[triangleoffset + 0] = i ; 
-		this.triangleIndices[triangleoffset + 1] = (i + 1)%nv;
-		this.triangleIndices[triangleoffset + 2] = nv + (i+1) %nv;
+		this.triangleIndices[triangleoffset + 1] = nv + (i+1) %nv;
+		this.triangleIndices[triangleoffset + 2] = (i + 1)%nv;
 		triangleoffset += 3;
 
 		this.triangleIndices[triangleoffset + 0] = i ;
-		this.triangleIndices[triangleoffset + 1] = nv + (i+1) %nv;
-		this.triangleIndices[triangleoffset + 2] =nv + i;
+		this.triangleIndices[triangleoffset + 1] = nv + i;
+		this.triangleIndices[triangleoffset + 2] =nv + (i+1) %nv;
 		triangleoffset += 3;
 	}
 

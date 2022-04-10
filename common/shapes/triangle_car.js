@@ -4,4 +4,4 @@ function Triangle() {//line 1, listing 2.10
 	this.triangleIndices = new Uint16Array([0,1,2]);
 	this.numVertices  = 3;
 	this.numTriangles = 1;
-}//line 7
+};//line 7

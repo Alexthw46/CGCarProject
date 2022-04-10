@@ -1,5 +1,13 @@
 // noinspection DuplicatedCode
 
+DirLight = function(){
+  this.direction = [0,50,0];
+}
+let sun = new DirLight();
+
+let scale_matrix      = glMatrix.mat4.create();
+let translate_matrix  = glMatrix.mat4.create();
+
 /*
 the FollowFromUpCamera always look at the car from a position above right over the car
 */
@@ -15,7 +23,7 @@ FollowFromUpCamera = function(){
     this.rotation = car.angle;
   }
 
-  /* return the transformation matrix to transform from world coordiantes to the view reference frame */
+  /* return the transformation matrix to transform from world coordinates to the view reference frame */
   this.matrix = function(){
     let LookMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),[ this.pos[0],30, this.pos[2]], this.pos,[0, 0, 1]);
     let RotMatrix = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), 0.5*this.rotation, [0,0,1]);
@@ -231,7 +239,6 @@ function carMatrix(){
   return glMatrix.mat4.mul(matrixTran,matrixTran,matrixScale);
 }
 
-
 Renderer.drawScene = function (gl) {
 
   const width = this.canvas.width;
@@ -242,6 +249,8 @@ Renderer.drawScene = function (gl) {
   gl.viewport(0, 0, width, height);
   
   gl.enable(gl.DEPTH_TEST);
+  gl.cullFace(gl.BACK);
+  gl.enable(gl.CULL_FACE);
 
   // Clear the framebuffer
   gl.clearColor(0.34, 0.5, 0.74, 1.0);
@@ -250,15 +259,25 @@ Renderer.drawScene = function (gl) {
 
   gl.useProgram(this.uniformShader);
 
+  /* the shader will just output the base color if a null light direction is given */
+  gl.uniform3fv(this.uniformShader.uLightDirectionLocation,[0,0,0]);
+
   gl.uniformMatrix4fv(this.uniformShader.uProjectionMatrixLocation,false,glMatrix.mat4.perspective(glMatrix.mat4.create(),3.14 / 4, ratio, 1, 500));
+
+  gl.uniformMatrix4fv(this.uniformShader.uTrackballMatrixLocation,false,trackball_matrix);
 
   Renderer.cameras[Renderer.currentCamera].update(this.car);
   let invV = Renderer.cameras[Renderer.currentCamera].matrix();
 
   // initialize the stack with the identity
   stack.loadIdentity();
+
+  gl.uniform3fv(this.uniformShader.uLightDirectionLocation, sun.direction);
+  gl.uniform1i(this.uniformShader.uShadingModeLocation, shadingMode);
+
   // multiply by the view matrix
   stack.multiply(invV);
+  gl.uniformMatrix4fv(this.uniformShader.uViewMatrixLocation,false, stack.matrix);
 
   // drawing the car
   stack.push();
@@ -288,10 +307,11 @@ Renderer.Display = function () {
 
 Renderer.setupAndStart = function () {
  /* create the canvas */
-	Renderer.canvas = document.getElementById("OUTPUT-CANVAS");
+  Renderer.canvas = document.getElementById("OUTPUT-CANVAS");
   
  /* get the webgl context */
-	Renderer.gl = Renderer.canvas.getContext("webgl");
+  Renderer.gl = Renderer.canvas.getContext("webgl");
+  Renderer.gl.getExtension('OES_standard_derivatives');
 
   /* create the matrix stack */
   Renderer.stack = new MatrixStack();
@@ -314,29 +334,87 @@ Renderer.setupAndStart = function () {
   Renderer.Display();
 }
 
-/* controlling with the mouse */
+/* controlling the light direction with the mouse */
 let drag            = false;    // we are on dragging mode
 let startX          = 0.0;
 let startY          = 0.0;
 
+let lightRotation   = glMatrix.mat4.create();
+let Rphi            = glMatrix.mat4.create();
+let Rtheta          = glMatrix.mat4.create();
+
+/* trackball */
+let rotating        = false;
+let start_point      = [0,0,0];
+let trackball_center= [0,0,-10.0];
+let trackball_matrix = glMatrix.mat4.create();
+
 on_mousedown = function(e){
-  drag = true;
+  if(mode === 0)
+    drag = true;
   startX = e.clientX;
   startY = e.clientY;
+
+  if(mode === 1){
+    const isOnSphere = point_on_sphere(startX, startY);
+    if(isOnSphere[0]){
+      console.log("rotating");
+      rotating = true;
+      start_point = isOnSphere[1];
+    }
+  }
 }
 
 on_mouseMove = function(e){
-  if(!drag)
+  if(!drag && !rotating)
     return;
 
-  const deltaX = e.clientX-startX;
-  const deltaY = e.clientY-startY;
+  let deltaX = e.clientX-startX;
+  let deltaY = e.clientY-startY;
+
+  if(mode === 0){
+    glMatrix.mat4.fromRotation(Rphi  ,deltaX*0.01,[0,1,0]);
+    glMatrix.mat4.fromRotation(Rtheta,deltaY*0.01,[1,0,0]);
+    glMatrix.mat4.mul(Rphi,Rphi,Rtheta);
+
+    lightRotation =  glMatrix.mat4.mul(lightRotation,Rphi,lightRotation);
+
+    newDir = glMatrix.vec3.create();
+    sun.direction = glMatrix.vec3.transformMat4(newDir,sun.direction,Rphi);
+  }
+  else if(mode === 1 && rotating){
+    let res = point_on_sphere(e.clientX, e.clientY);
+    if(res[0]){
+      let p0 = start_point;
+      let p1 = res[1];
+      let p0c = glMatrix.vec3.create();
+      let p1c = glMatrix.vec3.create();
+      let rot_axis = glMatrix.vec3.create();
+      let rot_angle = 0.0;
+      glMatrix.vec3.sub(p0c,p0,trackball_center);
+      glMatrix.vec3.sub(p1c,p1,trackball_center);
+      glMatrix.vec3.cross(rot_axis,p0c,p1c);
+      rot_angle = Math.asin( glMatrix.vec3.length(rot_axis) /(glMatrix.vec3.length(p0c)*glMatrix.vec3.length(p1c)));
+      glMatrix.vec3.normalize(rot_axis,rot_axis);
+
+      let rotMat = glMatrix.mat4.create();
+      glMatrix.mat4.fromRotation(rotMat,rot_angle,rot_axis);
+      glMatrix.mat4.mul(trackball_matrix, rotMat,trackball_matrix);
+
+      start_point = p1;
+
+    }
+
+
+  }
   startX =  e.clientX;
   startY =  e.clientY;
+
 }
 
 on_mouseup = function(e){
   drag = false;
+  rotating = false;
 }
 
 on_keyup = function(e){

@@ -19,7 +19,7 @@ function ComputeNormals(obj) {
 	const nt = obj.triangleIndices.length / 3;
 
 	obj.normals = new Float32Array(nv*3);
-	const star_size = new Float32Array(nv);
+	let star_size = new Float32Array(nv);
 
 	for(i = 0; i  < nv; ++i){
 		star_size[i] = 0;
@@ -37,8 +37,8 @@ function ComputeNormals(obj) {
 
 		const p01 = glMatrix.vec3.sub(glMatrix.vec3.create(), p1, p0);
 		const p02 = glMatrix.vec3.sub(glMatrix.vec3.create(), p2, p0);
-		n = glMatrix.vec3.cross(glMatrix.vec3.create(), p02, p01);
-
+		n = glMatrix.vec3.cross(glMatrix.vec3.create(),p02,p01);
+		
 		n = glMatrix.vec3.normalize(n,n);
 		
 		vec3add(obj.normals,i_v[0],n);
@@ -50,7 +50,7 @@ function ComputeNormals(obj) {
 		star_size[i_v[2]] += 1;
 	}
 	for(i = 0; i  < nv; ++i){
-		n = [ obj.normals[ 3*i],	obj.normals[ 3*i+1],	obj.normals[ 3*i+2] ];
+		n = [obj.normals[3 * i], obj.normals[3 * i + 1], obj.normals[3 * i + 2]];
 
 		glMatrix.vec3.mul(n,n,[1.0/star_size[i],1.0/star_size[i],1.0/star_size[i]]);
 		n = glMatrix.vec3.normalize(n,n);
