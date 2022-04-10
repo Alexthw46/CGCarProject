@@ -43,7 +43,7 @@ FollowFromBehindCamera = function(){
     this.frame = car.frame.slice();
   }
 
-  /* return the transformation matrix to transform from worlod coordiantes to the view reference frame */
+  /* return the transformation matrix to transform from world coordinates to the view reference frame */
   this.matrix = function(){
 
     let CameraMatrix = glMatrix.vec3.transformMat4(glMatrix.mat4.create(), [0,1.5,4,1], this.frame);
@@ -62,15 +62,11 @@ let Renderer = {};
 
 /* array of cameras that will be used */
 Renderer.cameras = [];
-// add a FollowFromUpCamera
 Renderer.cameras.push(new FollowFromUpCamera());
 Renderer.cameras.push(new FollowFromBehindCamera());
 // set the camera currently in use
 Renderer.currentCamera = 0;
 
-/*
-create the buffers for an object as specified in common/shapes/triangle.js
-*/
 Renderer.createObjectBuffers = function (gl, obj) {
 
   ComputeNormals(obj);
@@ -108,10 +104,6 @@ Renderer.createObjectBuffers = function (gl, obj) {
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 };
 
-/*
-draw an object as specified in common/shapes/triangle.js for which the buffer 
-have alrady been created
-*/
 Renderer.drawObject = function (gl, obj, fillColor, lineColor) {
 
   gl.bindBuffer(gl.ARRAY_BUFFER, obj.vertexBuffer);
@@ -141,9 +133,6 @@ Renderer.drawObject = function (gl, obj, fillColor, lineColor) {
   gl.bindBuffer(gl.ARRAY_BUFFER, null);
 };
 
-/*
-initialize the object in the scene
-*/
 Renderer.initializeObjects = function (gl) {
   Game.setScene(scene_0);
   this.car = Game.addCar("mycar");
@@ -151,6 +140,7 @@ Renderer.initializeObjects = function (gl) {
   Renderer.triangle = new Triangle();
   Renderer.cube = new Cube();
   Renderer.cylinder = new Cylinder(20);
+  Renderer.wheel = loadOnGPU(wheel);
 
   Renderer.createObjectBuffers(gl, this.triangle);
   Renderer.createObjectBuffers(gl, this.cube);
@@ -165,7 +155,6 @@ Renderer.initializeObjects = function (gl) {
 /*
 draw the car
 */
-let acc = 0;
 Renderer.drawCar = function (gl,frame, car) {
   this.drawObject(gl, this.triangle, [1, 1, 1, 1], [1, 1, 1, 1]);
 
@@ -178,10 +167,11 @@ Renderer.drawCar = function (gl,frame, car) {
   frame.multiply(carMatrix());
   gl.uniformMatrix4fv(shader,false, frame.matrix);
   this.drawObject(gl, this.cube, [0.5,0.6,0.7,1],lineColor);
+  //scaling
   let lilMat = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),[0,1.6,0]);
-  glMatrix.mat4.mul(lilMat,lilMat,glMatrix.mat4.fromScaling(glMatrix.mat4.create(),[0.6,0.8,0.6])
-);
+  glMatrix.mat4.mul(lilMat,lilMat,glMatrix.mat4.fromScaling(glMatrix.mat4.create(),[0.6,0.8,0.6]));
   frame.multiply(lilMat);
+  //draw scaled hull
   gl.uniformMatrix4fv(shader,false, frame.matrix);
   this.drawObject(gl, this.cube, [0.5,0.6,0.7,1],lineColor);
   frame.pop();
@@ -190,7 +180,7 @@ Renderer.drawCar = function (gl,frame, car) {
   //wheels
   acc += car.speed;
   frame.multiply(glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),[0,0.3,0]));
-  frame.multiply(glMatrix.mat4.fromScaling(glMatrix.mat4.create(),[0.15, 0.3, 0.3])); //scale size
+  //frame.multiply(glMatrix.mat4.fromScaling(glMatrix.mat4.create(),[0.15, 0.3, 0.3])); //scale size
   frame.multiply(glMatrix.mat4.fromRotation(glMatrix.mat4.create(),1.55,[0,1,0]));
   frame.push();
   frame.multiply(wheelMatrix([2,0,5],-1));
@@ -218,26 +208,6 @@ Renderer.drawCar = function (gl,frame, car) {
   //
   frame.pop();
 };
-
-
-function wheelMatrix(tVec, rot){
-
-  let matrixRot = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), rot * 1.55, [1,0,0]);
-  let matrixTran = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), tVec);
-  let matrixWheel = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), rot*1.5*acc, [0,1,0]);
-
-  glMatrix.mat4.mul(matrixRot, matrixTran, matrixRot);
-  return glMatrix.mat4.mul(matrixWheel, matrixRot, matrixWheel);
-}
-
-function carMatrix(){
-
-  let matrixScale = glMatrix.mat4.fromScaling(glMatrix.mat4.create(),[1.2, 0.2, 0.5]);
-  let matrixTran = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), [0,0.45,0]);
-  let matrixRot = glMatrix.mat4.fromRotation(glMatrix.mat4.create(),1.55, [0,1,0]);
-  glMatrix.mat4.mul(matrixTran,matrixRot,matrixTran);
-  return glMatrix.mat4.mul(matrixTran,matrixTran,matrixScale);
-}
 
 Renderer.drawScene = function (gl) {
 
@@ -297,8 +267,6 @@ Renderer.drawScene = function (gl) {
 	gl.useProgram(null);
 };
 
-
-
 Renderer.Display = function () {
   Renderer.drawScene(Renderer.gl);
   window.requestAnimationFrame(Renderer.Display) ;
@@ -343,26 +311,21 @@ let lightRotation   = glMatrix.mat4.create();
 let Rphi            = glMatrix.mat4.create();
 let Rtheta          = glMatrix.mat4.create();
 
-/* trackball */
-let rotating        = false;
-let start_point      = [0,0,0];
-let trackball_center= [0,0,-10.0];
-let trackball_matrix = glMatrix.mat4.create();
-
 on_mousedown = function(e){
-  if(mode === 0)
-    drag = true;
+
+  if(mode === 0) drag = true;
+
   startX = e.clientX;
   startY = e.clientY;
 
   if(mode === 1){
     const isOnSphere = point_on_sphere(startX, startY);
-    if(isOnSphere[0]){
-      console.log("rotating");
+    if (isOnSphere[0]){
       rotating = true;
       start_point = isOnSphere[1];
     }
   }
+
 }
 
 on_mouseMove = function(e){
@@ -379,7 +342,7 @@ on_mouseMove = function(e){
 
     lightRotation =  glMatrix.mat4.mul(lightRotation,Rphi,lightRotation);
 
-    newDir = glMatrix.vec3.create();
+    let newDir = glMatrix.vec3.create();
     sun.direction = glMatrix.vec3.transformMat4(newDir,sun.direction,Rphi);
   }
   else if(mode === 1 && rotating){
@@ -405,11 +368,9 @@ on_mouseMove = function(e){
 
     }
 
-
   }
   startX =  e.clientX;
   startY =  e.clientY;
-
 }
 
 on_mouseup = function(e){
@@ -422,6 +383,7 @@ on_keyup = function(e){
 }
 on_keydown = function(e){
   if (e.key === " ") {
+    trackball_matrix = glMatrix.mat4.create();
     Renderer.currentCamera = (Renderer.currentCamera + 1) % 2;
   }else
 	Renderer.car.control_keys[e.key] = true;
@@ -435,8 +397,4 @@ update_shading = function(v){
   shadingMode = parseInt(v);
 }
 
-
 window.onload = Renderer.setupAndStart;
-
-
-

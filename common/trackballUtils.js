@@ -5,6 +5,12 @@ t  =  1;
 n  =  1;
 f  = 15;
 
+/* trackball */
+let rotating = false;
+let start_point = [0,0,0];
+let trackball_center = [0,0,-10.0];
+let trackball_matrix = glMatrix.mat4.create();
+
 ray_sphere_intersection = function (r,radius,dz){
 
     let a = r[0] * r[0] + r[1] * r[1] + r[2] * r[2];

@@ -99,8 +99,8 @@ uniformShader = function (gl) {//line 1,Listing 2.14
       	 
         vec3 R = -L + 2.0 * dot(L,N) * N;
         vec3 k_spec = uColor.xyz * 1.1;
-        float specular = max(0.0,pow(dot(vViewVS,R),5.0));
-        vec3 output_color = uColor.xyz * L_diffuse + k_spec*specular;
+        float specular = max(0.0,pow(dot(vViewVS,R),10.0));
+        vec3 output_color = uColor.xyz * L_diffuse + k_spec * specular;
         float cosangle = dot(-L, -vLVS);
         if (cosangle < 0.9){
           output_color = output_color*0.6;
