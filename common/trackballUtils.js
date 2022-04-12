@@ -8,8 +8,12 @@ f  = 15;
 /* trackball */
 let rotating = false;
 let start_point = [0,0,0];
-let trackball_center = [0,0,-10.0];
+let trackball_center = [0,0,-10];
 let trackball_matrix = glMatrix.mat4.create();
+let scaling_factor = 1.0;
+
+let trackball_rotation = glMatrix.mat4.create();
+let trackball_scaling = glMatrix.mat4.create();
 
 ray_sphere_intersection = function (r,radius,dz){
 

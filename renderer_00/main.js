@@ -1,12 +1,14 @@
 // noinspection DuplicatedCode
 
-DirLight = function(){
-  this.direction = [0,50,0];
+DirLight = function(x,y,z){
+  this.direction = [x,y,z];
 }
-let sun = new DirLight();
 
-let scale_matrix      = glMatrix.mat4.create();
-let translate_matrix  = glMatrix.mat4.create();
+//fixed light
+let sun = new DirLight(5,10,5);
+
+//controllable spotlight
+let spot = new DirLight(0,1,0);
 
 /*
 the FollowFromUpCamera always look at the car from a position above right over the car
@@ -25,8 +27,8 @@ FollowFromUpCamera = function(){
 
   /* return the transformation matrix to transform from world coordinates to the view reference frame */
   this.matrix = function(){
-    let LookMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),[ this.pos[0],30, this.pos[2]], this.pos,[0, 0, 1]);
-    let RotMatrix = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), 0.5*this.rotation, [0,0,1]);
+    let LookMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),[ this.pos[0], 50, this.pos[2]], this.pos,[0, 0, 1]);
+    let RotMatrix = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), 0.25*this.rotation, [0,0,1]);
     return glMatrix.mat4.mul(RotMatrix, RotMatrix, LookMatrix);
   }
 }
@@ -46,17 +48,28 @@ FollowFromBehindCamera = function(){
   /* return the transformation matrix to transform from world coordinates to the view reference frame */
   this.matrix = function(){
 
-    let CameraMatrix = glMatrix.vec3.transformMat4(glMatrix.mat4.create(), [0,1.5,4,1], this.frame);
+    let CameraMatrix = glMatrix.vec3.transformMat4(glMatrix.mat4.create(), [0,1.2,5,1], this.frame);
     let EyeMatrix = glMatrix.vec3.transformMat4(glMatrix.mat4.create(),[0,0,0,1],this.frame);
 
   return glMatrix.mat4.lookAt(glMatrix.mat4.create(),CameraMatrix, EyeMatrix, [0,1,0]);
   }
 }
 
+FixedCamera = function () {
+  this.update = function (car) {
+    this.pos = car.position;
+  }
+  this.matrix = function(){
+    return glMatrix.mat4.lookAt(glMatrix.mat4.create(), [this.pos[0] + 10, 10, this.pos[2] + 10], this.pos, [0, 1, 0]);
+  }
+}
+
+
+
 let angle = 0.0;
 let mode = 0; // 0 light, 1 trackball
 let shadingMode = 0;
-
+let ncams = 3;
 /* the main object to be implemented */
 let Renderer = {};
 
@@ -64,9 +77,9 @@ let Renderer = {};
 Renderer.cameras = [];
 Renderer.cameras.push(new FollowFromUpCamera());
 Renderer.cameras.push(new FollowFromBehindCamera());
+Renderer.cameras.push(new FixedCamera());
 // set the camera currently in use
 Renderer.currentCamera = 0;
-
 Renderer.createObjectBuffers = function (gl, obj) {
 
   ComputeNormals(obj);
@@ -76,6 +89,19 @@ Renderer.createObjectBuffers = function (gl, obj) {
   gl.bufferData(gl.ARRAY_BUFFER, obj.vertices, gl.STATIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
+  if(typeof obj.texCoords != 'undefined'){
+    obj.texCoordsBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, obj.texCoordsBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, obj.texCoords, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  }
+
+  if(typeof obj.tangents != 'undefined'){
+    obj.tangentsBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, obj.tangentsBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, obj.tangents, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  }
 
   obj.normalBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, obj.normalBuffer);
@@ -110,6 +136,17 @@ Renderer.drawObject = function (gl, obj, fillColor, lineColor) {
   gl.enableVertexAttribArray(this.uniformShader.aPositionIndex);
   gl.vertexAttribPointer(this.uniformShader.aPositionIndex, 3, gl.FLOAT, false, 0, 0);
 
+  if (typeof obj.texCoords != 'undefined'){
+    gl.bindBuffer(gl.ARRAY_BUFFER, obj.texCoordsBuffer);
+    gl.enableVertexAttribArray(this.uniformShader.aTextureCoordsIndex);
+    gl.vertexAttribPointer(this.uniformShader.aTextureCoordsIndex, 2, gl.FLOAT, false, 0, 0);
+  }
+
+  if (typeof obj.tangentsBuffer != 'undefined'){
+    gl.bindBuffer(gl.ARRAY_BUFFER, obj.tangentsBuffer);
+    gl.enableVertexAttribArray(this.uniformShader.aTangentsIndex);
+    gl.vertexAttribPointer(this.uniformShader.aTangentsIndex, 3, gl.FLOAT, false, 0, 0);
+  }
 
   gl.bindBuffer(gl.ARRAY_BUFFER, obj.normalBuffer);
   gl.enableVertexAttribArray(this.uniformShader.aNormalIndex);
@@ -140,7 +177,6 @@ Renderer.initializeObjects = function (gl) {
   Renderer.triangle = new Triangle();
   Renderer.cube = new Cube();
   Renderer.cylinder = new Cylinder(20);
-  Renderer.wheel = loadOnGPU(wheel);
 
   Renderer.createObjectBuffers(gl, this.triangle);
   Renderer.createObjectBuffers(gl, this.cube);
@@ -151,6 +187,38 @@ Renderer.initializeObjects = function (gl) {
   for (let i = 0; i < Game.scene.buildings.length; ++i)
 	  	Renderer.createObjectBuffers(gl,Game.scene.buildingsObj[i]);
 };
+
+Renderer.drawLight = function (gl, frame){
+  frame.push();
+  let shader = this.uniformShader.uModelViewMatrixLocation;
+  let M = glMatrix.mat4.create();
+  let scale_matrix = glMatrix.mat4.create();
+  let translate_matrix = glMatrix.mat4.create();
+  glMatrix.mat4.fromScaling(scale_matrix,[0.01,1,0.01]);
+  glMatrix.mat4.fromTranslation(translate_matrix,[0,1,0]);
+  glMatrix.mat4.mul(M,scale_matrix,translate_matrix);
+  glMatrix.mat4.mul(M,lightRotation,M);
+
+  frame.multiply(M);
+  gl.uniformMatrix4fv(shader,false,frame.matrix);
+  this.drawObject(gl,this.cube,[1,1,0,1],[1,1,0,1]);
+
+  frame.pop();
+
+  frame.push();
+
+  glMatrix.mat4.fromScaling(scale_matrix,[0.1,0.1,0.1]);
+  glMatrix.mat4.fromTranslation(translate_matrix,[0,2,0]);
+  glMatrix.mat4.mul(M,translate_matrix,scale_matrix);
+
+  glMatrix.mat4.mul(M,lightRotation,M);
+
+  frame.multiply(M);
+  gl.uniformMatrix4fv(shader,false,frame.matrix);
+  this.drawObject(gl,this.cube,[1,0,0,1],[1,0,0,1]);
+  frame.pop();
+
+}
 
 /*
 draw the car
@@ -180,7 +248,7 @@ Renderer.drawCar = function (gl,frame, car) {
   //wheels
   acc += car.speed;
   frame.multiply(glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),[0,0.3,0]));
-  //frame.multiply(glMatrix.mat4.fromScaling(glMatrix.mat4.create(),[0.15, 0.3, 0.3])); //scale size
+  frame.multiply(glMatrix.mat4.fromScaling(glMatrix.mat4.create(),[0.15, 0.3, 0.3])); //scale size
   frame.multiply(glMatrix.mat4.fromRotation(glMatrix.mat4.create(),1.55,[0,1,0]));
   frame.push();
   frame.multiply(wheelMatrix([2,0,5],-1));
@@ -243,6 +311,7 @@ Renderer.drawScene = function (gl) {
   stack.loadIdentity();
 
   gl.uniform3fv(this.uniformShader.uLightDirectionLocation, sun.direction);
+  gl.uniform3fv(this.uniformShader.uSpotLightDirectionLocation, spot.direction);
   gl.uniform1i(this.uniformShader.uShadingModeLocation, shadingMode);
 
   // multiply by the view matrix
@@ -253,8 +322,11 @@ Renderer.drawScene = function (gl) {
   stack.push();
 
   stack.multiply(this.car.frame);
-  gl.uniformMatrix4fv(this.uniformShader.uModelViewMatrixLocation, false, stack.matrix);
+
+  this.drawLight(gl, stack);
   this.drawCar(gl, stack, this.car);
+
+
   stack.pop();
 
   gl.uniformMatrix4fv(this.uniformShader.uModelViewMatrixLocation, false, stack.matrix);
@@ -298,8 +370,9 @@ Renderer.setupAndStart = function () {
   Renderer.canvas.addEventListener('mouseup', on_mouseup,false);
   Renderer.canvas.addEventListener('keydown', on_keydown,false);
   Renderer.canvas.addEventListener('keyup', on_keyup,false);
-
+  Renderer.canvas.addEventListener('wheel', on_mouseWheel, false);
   Renderer.Display();
+
 }
 
 /* controlling the light direction with the mouse */
@@ -342,8 +415,7 @@ on_mouseMove = function(e){
 
     lightRotation =  glMatrix.mat4.mul(lightRotation,Rphi,lightRotation);
 
-    let newDir = glMatrix.vec3.create();
-    sun.direction = glMatrix.vec3.transformMat4(newDir,sun.direction,Rphi);
+    glMatrix.vec3.transformMat4(spot.direction,spot.direction,Rphi);
   }
   else if(mode === 1 && rotating){
     let res = point_on_sphere(e.clientX, e.clientY);
@@ -362,7 +434,8 @@ on_mouseMove = function(e){
 
       let rotMat = glMatrix.mat4.create();
       glMatrix.mat4.fromRotation(rotMat,rot_angle,rot_axis);
-      glMatrix.mat4.mul(trackball_matrix, rotMat,trackball_matrix);
+      glMatrix.mat4.mul(trackball_rotation, rotMat,trackball_rotation);
+      glMatrix.mat4.mul(trackball_matrix, trackball_scaling,trackball_rotation);
 
       start_point = p1;
 
@@ -384,9 +457,18 @@ on_keyup = function(e){
 on_keydown = function(e){
   if (e.key === " ") {
     trackball_matrix = glMatrix.mat4.create();
-    Renderer.currentCamera = (Renderer.currentCamera + 1) % 2;
+    Renderer.currentCamera = (Renderer.currentCamera + 1) % ncams;
   }else
 	Renderer.car.control_keys[e.key] = true;
+}
+
+//TODO find the bug, weird behaviour
+on_mouseWheel = function(e){
+  if (mode === 1) {
+    scaling_factor *= (1.0 + e.deltaY * 0.0008);
+    glMatrix.mat4.fromScaling(trackball_scaling, [scaling_factor, scaling_factor, scaling_factor]);
+    glMatrix.mat4.mul(trackball_matrix, trackball_scaling, trackball_rotation);
+  }
 }
 
 update_mode = function(v){

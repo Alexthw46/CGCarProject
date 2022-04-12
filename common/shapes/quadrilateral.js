@@ -1,13 +1,19 @@
-function Quadrilateral(quad,scale) {
+function Quadrilateral(quad, scale) {
 
-	var nv = 4;
+	let nv = 4;
 	this.vertices = new Float32Array(nv  * 3);
-	for(var i = 0; i < nv*3;++i)
+	for(let i = 0; i < nv*3; ++i)
 		this.vertices[i] = quad[i];
-	
+
+	this.texCoords = new Float32Array([
+		0.0,0.0,
+		1.0,0.0,
+		1.0,1.0,
+		0.0,1.0
+	]);
+
 	this.triangleIndices = new Uint16Array(2*3);
 
- 
 	this.triangleIndices[0] = 0;
 	this.triangleIndices[1] = 1;
 	this.triangleIndices[2] = 2;
@@ -15,8 +21,7 @@ function Quadrilateral(quad,scale) {
 	this.triangleIndices[3] = 0;
 	this.triangleIndices[4] = 2;
 	this.triangleIndices[5] = 3;
-	
 
 	this.numVertices  = 4;
 	this.numTriangles = 2;
-};
+}
