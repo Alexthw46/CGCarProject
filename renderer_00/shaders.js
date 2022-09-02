@@ -35,7 +35,7 @@ uniformShader = function (gl) {//line 1,Listing 2.14
     {                         
       mat4 toViewSpace = uModelViewMatrix;
       // light direction in view space
-      vec3 lightDirectionVS = normalize((uViewMatrix * uTrackballMatrix * vec4(uLightDirection,0.0))).xyz;
+      vec3 lightDirectionVS = normalize((uViewMatrix * vec4(uLightDirection,0.0))).xyz;
       
       vec3 normalVS = normalize(toViewSpace * vec4(aNormal,0.0)).xyz;
       vec3 V = -normalize((toViewSpace * vec4(aPosition, 1.0)).xyz);
@@ -53,7 +53,7 @@ uniformShader = function (gl) {//line 1,Listing 2.14
       
       vPosVS = ( toViewSpace * vec4(aPosition, 1.0)).xyz;
       
-      vSLVS = normalize((uViewMatrix * uTrackballMatrix * vec4(uSpotLightDirection,0.0))).xyz;
+      vSLVS = normalize((uViewMatrix * vec4(uSpotLightDirection,0.0))).xyz;
       vLVS = lightDirectionVS;
       vViewVS = normalize(-vPosVS);
       vNVS = normalVS;
@@ -86,7 +86,7 @@ uniformShader = function (gl) {//line 1,Listing 2.14
     if (uShadingMode == 0){
         gl_FragColor = uColor;	
      }  
-     else if (uShadingMode==1){ //flat
+     else if (uShadingMode==1){
         vec3 N = normalize(cross(dFdx(vPosVS),dFdy(vPosVS)));
       	float L_diffuse = max(dot(vLVS,N),0.0);
       	
@@ -109,10 +109,10 @@ uniformShader = function (gl) {//line 1,Listing 2.14
         float cosangle = dot(-L, -vSLVS);
         
         //mix the color with the sunlight
-        if (cosangle > 0.98){
-          gl_FragColor = vec4(vShadedColor + output_color, uColor.w);
+        if (cosangle > 0.99){
+          gl_FragColor = vec4(output_color * 1.5, uColor.w);
         }else{
-          gl_FragColor = vec4((vShadedColor + output_color) / 1.5, uColor.w);
+          gl_FragColor = vec4(output_color, uColor.w);
         }
      }
      else {

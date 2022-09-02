@@ -4,9 +4,6 @@ DirLight = function(x,y,z){
   this.direction = [x,y,z];
 }
 
-//fixed light
-let sun = new DirLight(5,10,5);
-
 //controllable spotlight
 let spot = new DirLight(0,1,0);
 
@@ -188,38 +185,6 @@ Renderer.initializeObjects = function (gl) {
 	  	Renderer.createObjectBuffers(gl,Game.scene.buildingsObj[i]);
 };
 
-Renderer.drawLight = function (gl, frame){
-  frame.push();
-  let shader = this.uniformShader.uModelViewMatrixLocation;
-  let M = glMatrix.mat4.create();
-  let scale_matrix = glMatrix.mat4.create();
-  let translate_matrix = glMatrix.mat4.create();
-  glMatrix.mat4.fromScaling(scale_matrix,[0.01,1,0.01]);
-  glMatrix.mat4.fromTranslation(translate_matrix,[0,1,0]);
-  glMatrix.mat4.mul(M,scale_matrix,translate_matrix);
-  glMatrix.mat4.mul(M,lightRotation,M);
-
-  frame.multiply(M);
-  gl.uniformMatrix4fv(shader,false,frame.matrix);
-  this.drawObject(gl,this.cube,[1,1,0,1],[1,1,0,1]);
-
-  frame.pop();
-
-  frame.push();
-
-  glMatrix.mat4.fromScaling(scale_matrix,[0.1,0.1,0.1]);
-  glMatrix.mat4.fromTranslation(translate_matrix,[0,2,0]);
-  glMatrix.mat4.mul(M,translate_matrix,scale_matrix);
-
-  glMatrix.mat4.mul(M,lightRotation,M);
-
-  frame.multiply(M);
-  gl.uniformMatrix4fv(shader,false,frame.matrix);
-  this.drawObject(gl,this.cube,[1,0,0,1],[1,0,0,1]);
-  frame.pop();
-
-}
-
 /*
 draw the car
 */
@@ -246,7 +211,15 @@ Renderer.drawCar = function (gl,frame, car) {
 
   frame.push();
   //wheels
-  acc += car.speed;
+
+  if (car.speed > 0.01){
+    acc = Math.max(0, acc += 0.1);
+  }else if (car.speed < -0.01){
+    acc = Math.min(0, acc -= 0.1);
+  }else{
+    acc *= 0.01;
+  }
+
   frame.multiply(glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),[0,0.3,0]));
   frame.multiply(glMatrix.mat4.fromScaling(glMatrix.mat4.create(),[0.15, 0.3, 0.3])); //scale size
   frame.multiply(glMatrix.mat4.fromRotation(glMatrix.mat4.create(),1.55,[0,1,0]));
@@ -283,12 +256,11 @@ Renderer.drawScene = function (gl) {
   const height = this.canvas.height;
   const ratio = width / height;
   const stack = new MatrixStack();
-
   gl.viewport(0, 0, width, height);
   
   gl.enable(gl.DEPTH_TEST);
-  gl.cullFace(gl.BACK);
-  gl.enable(gl.CULL_FACE);
+  //gl.cullFace(gl.BACK);
+  //gl.enable(gl.CULL_FACE);
 
   // Clear the framebuffer
   gl.clearColor(0.34, 0.5, 0.74, 1.0);
@@ -310,22 +282,23 @@ Renderer.drawScene = function (gl) {
   // initialize the stack with the identity
   stack.loadIdentity();
 
-  gl.uniform3fv(this.uniformShader.uLightDirectionLocation, sun.direction);
+  gl.uniform3fv(this.uniformShader.uLightDirectionLocation, scene_0.weather.sunLightDirection);
   gl.uniform3fv(this.uniformShader.uSpotLightDirectionLocation, spot.direction);
   gl.uniform1i(this.uniformShader.uShadingModeLocation, shadingMode);
 
   // multiply by the view matrix
   stack.multiply(invV);
+  stack.push();
+  stack.multiply(trackball_matrix);
+
   gl.uniformMatrix4fv(this.uniformShader.uViewMatrixLocation,false, stack.matrix);
 
+  stack.pop();
   // drawing the car
   stack.push();
 
   stack.multiply(this.car.frame);
-
-  this.drawLight(gl, stack);
   this.drawCar(gl, stack, this.car);
-
 
   stack.pop();
 
@@ -375,18 +348,7 @@ Renderer.setupAndStart = function () {
 
 }
 
-/* controlling the light direction with the mouse */
-let drag            = false;    // we are on dragging mode
-let startX          = 0.0;
-let startY          = 0.0;
-
-let lightRotation   = glMatrix.mat4.create();
-let Rphi            = glMatrix.mat4.create();
-let Rtheta          = glMatrix.mat4.create();
-
 on_mousedown = function(e){
-
-  if(mode === 0) drag = true;
 
   startX = e.clientX;
   startY = e.clientY;
@@ -402,22 +364,8 @@ on_mousedown = function(e){
 }
 
 on_mouseMove = function(e){
-  if(!drag && !rotating)
-    return;
 
-  let deltaX = e.clientX-startX;
-  let deltaY = e.clientY-startY;
-
-  if(mode === 0){
-    glMatrix.mat4.fromRotation(Rphi  ,deltaX*0.01,[0,1,0]);
-    glMatrix.mat4.fromRotation(Rtheta,deltaY*0.01,[1,0,0]);
-    glMatrix.mat4.mul(Rphi,Rphi,Rtheta);
-
-    lightRotation =  glMatrix.mat4.mul(lightRotation,Rphi,lightRotation);
-
-    glMatrix.vec3.transformMat4(spot.direction,spot.direction,Rphi);
-  }
-  else if(mode === 1 && rotating){
+  if(mode === 1 && rotating){
     let res = point_on_sphere(e.clientX, e.clientY);
     if(res[0]){
       let p0 = start_point;
@@ -440,14 +388,13 @@ on_mouseMove = function(e){
       start_point = p1;
 
     }
-
   }
+
   startX =  e.clientX;
   startY =  e.clientY;
 }
 
-on_mouseup = function(e){
-  drag = false;
+on_mouseup = function(){
   rotating = false;
 }
 
@@ -457,9 +404,14 @@ on_keyup = function(e){
 on_keydown = function(e){
   if (e.key === " ") {
     trackball_matrix = glMatrix.mat4.create();
+    trackball_rotation = glMatrix.mat4.create();
+    trackball_scaling = glMatrix.mat4.create();
     Renderer.currentCamera = (Renderer.currentCamera + 1) % ncams;
-  }else
-	Renderer.car.control_keys[e.key] = true;
+  }else if (e.key === "l") {
+    scene_0.weather.sunLightDirection = [scene_0.weather.sunLightDirection[0] + 10, scene_0.weather.sunLightDirection[1] , scene_0.weather.sunLightDirection[2] + 10];
+  }else {
+    Renderer.car.control_keys[e.key] = true;
+  }
 }
 
 //TODO find the bug, weird behaviour

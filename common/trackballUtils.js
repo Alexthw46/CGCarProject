@@ -7,8 +7,10 @@ f  = 15;
 
 /* trackball */
 let rotating = false;
+let startX          = 0.0;
+let startY          = 0.0;
 let start_point = [0,0,0];
-let trackball_center = [0,0,-10];
+let trackball_center = [0,-10,0];
 let trackball_matrix = glMatrix.mat4.create();
 let scaling_factor = 1.0;
 

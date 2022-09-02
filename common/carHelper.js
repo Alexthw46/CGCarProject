@@ -4,7 +4,7 @@ function wheelMatrix(tVec, rot){
 
     let matrixRot = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), rot * 1.55, [1,0,0]);
     let matrixTran = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), tVec);
-    let matrixWheel = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), rot*1.5*acc, [0,1,0]);
+    let matrixWheel = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), rot * 1.5 * acc, [0,1,0]);
 
     glMatrix.mat4.mul(matrixRot, matrixTran, matrixRot);
     return glMatrix.mat4.mul(matrixWheel, matrixRot, matrixWheel);

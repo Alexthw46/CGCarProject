@@ -129,8 +129,9 @@ Game = {
 	  Game.scene.groundObj = new Quadrilateral(quad);
 
 	  Game.scene.buildingsObj  = new Array(Game.scene.buildings.length);
-  	for (var i = 0; i < Game.scene.buildings.length; ++i) 
+  	for (var i = 0; i < Game.scene.buildings.length; ++i) {
 	  	Game.scene.buildingsObj[i] = new BuildingMaker(Game.scene.buildings[i]);
+	  }
   }
 };
 
